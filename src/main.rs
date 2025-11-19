@@ -71,7 +71,12 @@ async fn listen_atomic_countdown(tx: web::Data<broadcast::Sender<i32>>) -> impl 
                     .id(value.to_string());
                 Some((Ok::<_, Infallible>(sse::Event::Data(data)), rx))
             }
-            Err(_) => None,
+            // ignore lag and keep press data
+            Err(broadcast::error::RecvError::Lagged(_)) => {
+                // Some((Ok::<_, Infallible>(sse::Event::Comment("null")), rx));
+                None
+            }
+            Err(broadcast::error::RecvError::Closed) => None,
         }
     });
 
