@@ -1,10 +1,10 @@
 use actix_web::{App, HttpRequest, HttpResponse, HttpServer, Responder, get, web};
 use actix_web_lab::{extract::Path, sse};
 use futures_util::stream;
+use log::debug;
 use std::{convert::Infallible, time::Duration};
-use tokio::time::sleep;
-use log::{debug};
 use tokio::sync::broadcast;
+use tokio::time::sleep;
 
 #[get("/hello/{name}")]
 async fn greet(name: web::Path<String>) -> impl Responder {
@@ -42,12 +42,14 @@ fn common_countdown(n: i32) -> impl Responder {
 }
 
 #[get("/set_atomic_countdown/{n:\\d+}")]
-async fn set_atomic_countdown(Path(n): Path<i32>, tx: web::Data<broadcast::Sender<i32>>) -> HttpResponse {
+async fn set_atomic_countdown(
+    Path(n): Path<i32>,
+    tx: web::Data<broadcast::Sender<i32>>,
+) -> HttpResponse {
     tokio::spawn(async move {
         for i in (0..n).rev() {
             match tx.send(i) {
-                Ok(_) => {
-                }
+                Ok(_) => {}
                 Err(_) => {
                     // No active receivers, do nothing let value pass
                 }
@@ -73,8 +75,7 @@ async fn listen_atomic_countdown(tx: web::Data<broadcast::Sender<i32>>) -> impl 
             }
             // ignore lag and keep press data
             Err(broadcast::error::RecvError::Lagged(_)) => {
-                // Some((Ok::<_, Infallible>(sse::Event::Comment("null")), rx));
-                None
+                Some((Ok::<_, Infallible>(sse::Event::Comment("null".to_string())), rx))
             }
             Err(broadcast::error::RecvError::Closed) => None,
         }
